@@ -1,0 +1,6 @@
+mss
+opencv-python
+pytesseract
+numpy
+plyer
+pyinstaller
