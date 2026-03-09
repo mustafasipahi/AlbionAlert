@@ -1,5 +1,6 @@
 import time
 import sys
+import traceback
 from screen_capture import capture_screen
 from text_detector import detect_names
 from notifier import notify
@@ -8,30 +9,35 @@ from config import SCAN_INTERVAL, COOLDOWN_SECONDS, MONITOR_REGION
 
 def main():
     print("=" * 50)
-    print("  AlbionAlert - Düşman Algılama Sistemi")
+    print("  AlbionAlert - Dusman Algilama Sistemi")
     print("=" * 50)
-    print(f"  Tarama aralığı: {SCAN_INTERVAL}s")
+    print(f"  Tarama araligi: {SCAN_INTERVAL}s")
     print(f"  Cooldown: {COOLDOWN_SECONDS}s")
-    print("  Durdurmak için Ctrl+C")
+    print("  Durdurmak icin Ctrl+C")
     print("=" * 50)
+    print()
 
-    # İsim -> son bildirim zamanı
     known_enemies = {}
+    scan_count = 0
 
     try:
         while True:
             image = capture_screen(MONITOR_REGION)
             names = detect_names(image)
             now = time.time()
+            scan_count += 1
+
+            # Her 10 taramada durum göster
+            if scan_count % 10 == 0:
+                print(f"  [Tarama #{scan_count}] Aktif izleme devam ediyor...")
 
             for name in names:
                 last_seen = known_enemies.get(name, 0)
                 if now - last_seen > COOLDOWN_SECONDS:
-                    print(f"[!] Düşman tespit edildi: {name}")
+                    print(f"\n  >>> DUSMAN TESPIT EDILDI: {name} <<<\n")
                     notify(name)
                     known_enemies[name] = now
 
-            # Eski kayıtları temizle (5 dakikadan eski)
             expired = [k for k, v in known_enemies.items() if now - v > 300]
             for k in expired:
                 del known_enemies[k]
@@ -39,9 +45,20 @@ def main():
             time.sleep(SCAN_INTERVAL)
 
     except KeyboardInterrupt:
-        print("\nAlbionAlert kapatıldı.")
-        sys.exit(0)
+        print("\nAlbionAlert kapatildi.")
+
+    except Exception:
+        print("\n[HATA] Bir sorun olustu:")
+        traceback.print_exc()
+        print("\nKapatmak icin bir tusa basin...")
+        input()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        traceback.print_exc()
+        print("\nKapatmak icin bir tusa basin...")
+        input()
