@@ -1,1 +1,45 @@
+name: Build Windows EXE
 
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Tesseract
+        run: choco install tesseract -y
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build EXE
+        run: |
+          pyinstaller --onedir --name AlbionAlert --console --noconfirm main.py
+
+      - name: Bundle Tesseract
+        run: |
+          $tessPath = "C:\Program Files\Tesseract-OCR"
+          $destPath = "dist\AlbionAlert\tesseract"
+          Copy-Item -Path $tessPath -Destination $destPath -Recurse
+        shell: pwsh
+
+      - name: Create ZIP
+        run: Compress-Archive -Path "dist\AlbionAlert\*" -DestinationPath "AlbionAlert-Windows.zip"
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlbionAlert-Windows
+          path: AlbionAlert-Windows.zip
